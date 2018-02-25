@@ -7,7 +7,7 @@ Alexander Foremny
 Freelance software engineer,<br>
 Full Stack web developer
 
-27.02.2017, Hamburg
+27.02.2018, Hamburg
 
 ---
 
