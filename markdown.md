@@ -55,11 +55,12 @@ Full Stack web developer
 - elm-mdl implements [Material Design Lite](https://github.com/google/material-design-lite)…
 - …which has been discontinued by Google in 2017
 
+--
 
 ## Goals
 
 - Re-implement JavaScript in pure Elm
-- Use upstream's CSS verbatim
+- Use upstream's CSS *verbatim*
 
 ---
 
@@ -72,6 +73,9 @@ Full Stack web developer
    1. `lift` Pattern
 1. Obstacles in Elm
    1. Multiple Event Listeners
+   1. CSS Variables
+   1. Changing Focus
+   1. Trapping Focus
    1. DOM Decoding
    1. Node Initialization
    1. Ticking Components
@@ -272,7 +276,7 @@ Full Stack web developer
 
 ---
 
-# 1. Component Toolbar (Waterfall w/Fixed Row)
+# 1. Component Toolbar (Fixed Row)
 
 <iframe src="https://aforemny.github.io/elm-mdc/#toolbar/waterfall-toolbar-fix-last-row" class="demo-iframe"></iframe>
 
@@ -453,11 +457,11 @@ Html.button
 
 ```elm
 type Msg         -- user message
-    = ButtonMsg Msg
+    = ButtonMsg Button.Msg
     | Click
 
 
-type ButtonMsg   -- component message
+type Button.Msg   -- component message
     = Focus
     | Blur
 
@@ -495,8 +499,14 @@ view _ =
 # 3. Obstacles in Elm
 
 1. Multiple Event Listeners
+1. CSS Variables
+1. Changing Focus
+1. Trapping Focus
 1. DOM Decoding
 1. Node Initialization
+1. Ticking Components
+1. Global Events
+1. Fun with Work-Arounds
 
 ---
 
@@ -547,7 +557,7 @@ view model =
 
 ---
 
-## 3.1 `Material.Property`
+# 3.1 `Material.Property`
 
 We collect multiple event listeners and turn them into a single one. We then
 dispatch those messages from `update` via `Cmd`s.
@@ -572,7 +582,7 @@ update msg model =
 
 ---
 
-## 3.1 `Material.Property`
+# 3.1 `Material.Property`
 
 ```elm
 collect : List (Decoder Msg) -> Decoder (List Msg)
@@ -598,7 +608,7 @@ cmd msg =
 
 ---
 
-## 3.1 `Material.Property`
+# 3.1 `Material.Property`
 
 
 ```elm
@@ -610,7 +620,7 @@ delayedCmd time msg =
 
 ---
 
-## 3.1 `Material.Property`
+# 3.1 `Material.Property`
 
 Convenience functions:
 
@@ -642,17 +652,115 @@ fancyButton =
 
 ---
 
-## 3.2 DOM Decoding
+# 3.2 CSS Variables
+
+- Elm does not support CSS variables…
+- …but MDC Web components use them *not only* for themeing
+
+--
+
+## Soluation: Inline `<style>`
+
+---
+
+# 3.2 CSS Variables
+
+```elm
+cssVariables
+    : { rippleFgSize : Float
+      , rippleFgScale : Float
+      , rippleTop : Float
+      , rippleLeft : Float
+      , rippleFgTranslateStart : Float
+      , rippleFgTranslateEnd : Float
+      }
+    -> { className : String
+       , styles : Html m
+       }
+```
+
+```elm
+view _ =
+    let
+        { className, styles } =
+            cssVariables { … }
+    in
+    styled Html.div
+    [ cs "mdc-ripple", cs className ]
+    [ …, style ]
+```
+
+---
+
+# 3.2 CSS Variables
+
+```elm
+cssVariables vars =
+    let
+        className =
+            "mdc-ripple-style-hack-" ++ hash vars
+
+        hash vars = -- unique identifier from values of all variables
+            …
+
+        style =
+            Html.node "style"
+            [ Html.type_ "text/css"
+            ]
+            [ text """
+.""" ++ className ++ { """ ++
+    /* write out vars */
+++ """ }
+              """
+            ]
+    in
+    { className = className
+    , styles = styles
+    }
+```
+
+---
+
+# 3.3 Changing Focus
+
+- Some MDC Web components focus child elements, ie. Menu
+- Elm requires unique `Html.id`s…
+- …and I am not sure that is the way to go. . .
+
+--
+
+## Possible solution within elm-mdc.js
+
+- Use `MutationObserver` to observe `data-autofocus` attributes
+
+---
+
+# 3.4 Trapping Focus
+
+- Some MDC Web components trap focus, ie. Dialogs
+- Trapping focus is dependent on the framework
+- They recommend davidtheclark/focus-trap
+
+--
+
+## Possible solution within elm-mdc.js
+
+- Use `MutationObserver` to observer `data-focustrap` attributes
+- It seems we can use davidtheclark/focus-trap as well
+
+---
+
+# 3.5 DOM Decoding
 
 - MDC Web components frequently require information from DOM, ie. `offsetWidth`
 
 --
 
-### Solution: Use `Json.Decoder`
+## Solution: Use `Json.Decoder`
 
 ---
 
-## 3.2 DOM Decoding
+# 3.5 DOM Decoding
 
 ```elm
 import Json.Decode as Json
@@ -674,7 +782,7 @@ decodeGeometry : Decoder { offsetWidth : Int, offsetHeight : Int }
 decodeGeometry =
     Json.at [ "target" ] <|
     Json.map2 (\ offsetWidth offsetHeight ->
-        { offsetWidth = offsetWidth, offsetHeight = offsetHeight }
+            { offsetWidth = offsetWidth, offsetHeight = offsetHeight }
         )
         (Json.at [ "offsetWidth" ] Json.int)
         (Json.at [ "offsetHeight" ] Json.int)
@@ -682,7 +790,7 @@ decodeGeometry =
 
 ---
 
-## 3.2 DOM Decoding
+# 3.5 DOM Decoding
 
 - Works well. Most frequently we require information from DOM when user
   interaction happens
@@ -692,7 +800,7 @@ decodeGeometry =
 
 --
 
-### …but
+## …but
 
 - Limited to properties. No functions, ie. no `getBoundingClientRect()`
 - Limited to decoding DOM when events happen
@@ -700,9 +808,9 @@ decodeGeometry =
 
 ---
 
-## 3.2 DOM Decoding
+# 3.5 DOM Decoding
 
-### Component "Grid List"
+## Component "Grid List"
 
 - Decodes container's and its wrapped children `offsetWidth` to horizontally
   center itself
@@ -719,9 +827,9 @@ decodeGeometry =
 
 ---
 
-## 3.2 DOM Decoding
+# 3.5 DOM Decoding
 
-### Component "Menu"
+## Component "Menu"
 
 - Decodes it's dimensions, position and viewport extents to automatically
   position itself
@@ -740,9 +848,9 @@ viewport =
 
 ---
 
-## 3.2 DOM Decoding
+# 3.5 DOM Decoding
 
-### Component "Ripple"
+## Component "Ripple"
 
 - Decodes window's page offset, container's `disabled` property and `changedTouches`
 
@@ -762,9 +870,9 @@ disabled =
 
 ---
 
-## 3.2 DOM Decoding
+# 3.5 DOM Decoding
 
-### Component "Select"
+## Component "Select"
 
 - In addition to Menu, decodes item's `offsetTop`s for positioning
 
@@ -778,9 +886,9 @@ itemOffsetTops =
 
 ---
 
-## 3.2 DOM Decoding
+# 3.5 DOM Decoding
 
-### Component "Slider"
+## Component "Slider"
 
 - Raises events on several DOM nodes and needs to traverse to the container to
   decode `Geometry`
@@ -803,9 +911,9 @@ traverseToContainer decoder =
 
 ---
 
-## 3.2 DOM Decoding
+# 3.5 DOM Decoding
 
-### Component "Textfield"
+## Component "Textfield"
 
 - Would like to decode `border-radius`
 
@@ -815,9 +923,9 @@ traverseToContainer decoder =
 
 ---
 
-## 3.2 DOM Decoding
+# 3.5 DOM Decoding
 
-### `DOM.boundingClientRect`
+## `DOM.boundingClientRect`
 
 - Only emulates `getBoundingClientRect()`
 - Traverses all `offsetParents` and accumulates `offset{Top,Left}` and `scroll{Top,Left}`
@@ -825,11 +933,16 @@ traverseToContainer decoder =
 - Is computationally expensive
 - Returns slightly different results depending on browser
 
-### Possible solution and work-around
+--
+
+## Possible solution and work-around
+
+- Elm should have `getBoundingClientRect : Decoder Rect`
+- Supplement `globaltick` event
 
 ---
 
-# 3.3 Node initialization
+# 3.6 Node initialization
 
 *Recall: DOM decoding only works in response to events*
 
@@ -843,11 +956,11 @@ traverseToContainer decoder =
 
 --
 
-### Solution: MutationObserver + CustomEvent
+## Solution: MutationObserver + CustomEvent
 
 ---
 
-### 3.3 Node Initialization
+# 3.6 Node Initialization
 
 - We supplement `elm-mdc.js`
 - `MutationObserver` observes the `data-globaltick` attribute
@@ -872,7 +985,7 @@ This solution is *robust* because it
 
 ---
 
-# 3.4 Ticking Components
+# 3.7 Ticking Components
 
 *Recall: DOM decoding only works in response to events*
 
@@ -904,7 +1017,7 @@ view _ =
 
 ---
 
-# 3.5 Global Events
+# 3.8 Global Events
 
 - Sometimes we need to run a decoder in response to an event on `window` or
   `document`, ie. resize or mouse events
@@ -922,17 +1035,17 @@ view _ =
 
 ---
 
-# 3.6 Fun with Work-Arounds
+# 3.9 Fun with Work-Arounds
 
 <iframe src="https://aforemny.github.io/elm-mdc/#checkbox" class="demo-iframe"></iframe>
 
 ---
 
-# 3.6 Fun with Work-Arounds
+# 3.9 Fun with Work-Arounds
 
 ```elm
 type Model =
-    { lastKnownState : Config
+    { lastKnownState : State
     , animation : Maybe String
     }
 
@@ -967,7 +1080,7 @@ update msg model =
             in
             ( { model
                   | lastKnownState = newState
-                  , animation = animation
+                  , animation = Just animation
               }
             ,
               Cmd.none
@@ -985,7 +1098,7 @@ view config … =
             |> Maybe.withDefault defaultState
 
         configState =
-            config
+            stateFromConfig config
 
         stateChanged =
             currentState /= configState

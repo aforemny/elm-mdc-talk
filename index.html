@@ -16,6 +16,20 @@ h1, h2, h3 {
 .remark-code, .remark-inline-code {
   font-family: 'Ubuntu Mono';
 }
+/*
+Note: elm-mdc initialization does not work when iframes are hidden with
+`display: none`.
+*/
+.remark-slide-container {
+  display: block;
+  visibility: hidden;
+}
+.remark-visible {
+  visibility: visible;
+}
+/*
+Make iframes cover all available space minus h1 heading:
+*/
 .demo-iframe {
   border: 1px solid #ccc;
   position: absolute;
