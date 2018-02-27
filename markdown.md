@@ -564,7 +564,7 @@ dispatch those messages from `update` via `Cmd`s.
 
 ```elm
     [ Options.onClick Foo
-    , Options.onClick bar
+    , Options.onClick Bar
     ]
 
 -- becomes:
@@ -595,15 +595,15 @@ collect decoders =
 ```
 
 ```elm
-forward : List Msg -> Cmd Msg
-forward msgs =
-    Cmd.batch (List.map cmd msgs)
-
-
 cmd : Msg -> Cmd Msg
 cmd msg =
     Task.perform (\ _ -> msg) <|
     Task.succeed ()
+
+
+forward : List Msg -> Cmd Msg
+forward msgs =
+    Cmd.batch (List.map cmd msgs)
 ```
 
 ---
@@ -659,7 +659,7 @@ fancyButton =
 
 --
 
-## Soluation: Inline `<style>`
+## Solution: Inline `<style>`
 
 ---
 
@@ -725,7 +725,7 @@ cssVariables vars =
 
 - Some MDC Web components focus child elements, ie. Menu
 - Elm requires unique `Html.id`s…
-- …and I am not sure that is the way to go. . .
+- …and I am not convinced that that is the way to go. . .
 
 --
 
@@ -942,7 +942,7 @@ traverseToContainer decoder =
 
 ---
 
-# 3.6 Node initialization
+# 3.6 Node Initialization
 
 *Recall: DOM decoding only works in response to events*
 
